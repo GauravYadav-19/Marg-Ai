@@ -47,25 +47,32 @@ Follow these steps to run MargAI locally.
 ```bash
 git clone [https://github.com/your-username/marg-ai.git](https://github.com/your-username/marg-ai.git)
 cd marg-ai
+```
 
 ### 2. Install Dependencies
+```
 npm install
+```
 
 ### 3. Configure Environment Variables
-Create a .env file in the root directory and add your API keys:
+Create a ```.env``` file in the root directory and add your API keys:
 
-# Google Gemini API (For AI Generation)
+#### Google Gemini API (For AI Generation)
+
+```
 NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_key_here
-
-# Supabase (For Database & Auth)
+```
+#### Supabase (For Database & Auth)
+```
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-
+```
 ### 4. Run the Development Server
 npm run dev
-Open http://localhost:3000 to see the app live!
+Open ```http://localhost:3000``` to see the app live!
 
 📁 Project Structure
+```
 src/
 ├── app/
 │   ├── api/            # Server-side API routes (Gemini integration)
@@ -79,8 +86,10 @@ src/
 ├── lib/
 │   └── supabaseClient.ts # Database connection logic
 └── styles/             # Global Tailwind styles
+```
 
 🔮 Future Roadmap
+```
 [ ] Progress Tracking: Mark individual topics as "Complete" and update DB.
 
 [ ] Public Profiles: Share your roadmap with the community.
@@ -88,10 +97,11 @@ src/
 [ ] PDF Export: Download your syllabus.
 
 [ ] Job Matching: See jobs that match your completed roadmap.
+```
 
 🤝 Contributing
 Contributions are welcome! If you have ideas for better prompts or UI improvements:
-
+```
 1. Fork the Project
 
 2. Create your Feature Branch (git checkout -b feature/AmazingFeature)
@@ -101,7 +111,9 @@ Contributions are welcome! If you have ideas for better prompts or UI improvemen
 4. Push to the Branch (git push origin feature/AmazingFeature)
 
 5. Open a Pull Request
+```
 
 📄 License
 Distributed under the MIT License. See LICENSE for more information.
-<p align="center"> Built with ❤️ by Gaurav Yadav </p>
+
+### Built with ❤️ by Gaurav Yadav
