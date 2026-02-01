@@ -106,16 +106,41 @@ const RoadmapGeneratorInteractive = () => {
     setCurrentStep(step);
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setIsGenerating(true);
     
-    if (isHydrated) {
-      localStorage.setItem('roadmapFormData', JSON.stringify(formData));
-    }
+    try {
+      // 1. Send the user's choices to your new API
+      const response = await fetch('/api/generate-roadmap', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
-    setTimeout(() => {
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate roadmap');
+      }
+
+      // 2. Save the REAL AI response to local storage
+      if (isHydrated) {
+        // We save the 'data' (the AI response), not just 'formData' (the user input)
+        localStorage.setItem('generatedRoadmapData', JSON.stringify(data));
+        // We can also keep the user input if you want
+        localStorage.setItem('roadmapFormData', JSON.stringify(formData));
+      }
+
+      // 3. Navigate to the results page
       router.push('/generated-roadmap');
-    }, 8000);
+
+    } catch (error) {
+      console.error("Generation failed:", error);
+      alert("Failed to generate roadmap. Please check your API key.");
+      setIsGenerating(false);
+    }
   };
 
   if (!isHydrated) {
