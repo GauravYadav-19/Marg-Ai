@@ -1,5 +1,5 @@
 'use client';
-
+import { supabase } from '@/lib/supabaseClient';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PhaseCard from './PhaseCard';
@@ -7,7 +7,7 @@ import ProgressSidebar from './ProgressSidebar';
 import ActionControls from './ActionControls';
 import RoadmapHeader from './RoadmapHeader';
 
-// --- Interfaces matching your UI components ---
+// --- Interfaces ---
 interface Resource {
   type: string;
   title: string;
@@ -53,88 +53,118 @@ const GeneratedRoadmapInteractive = () => {
   const [isHydrated, setIsHydrated] = useState(false);
   const [roadmapData, setRoadmapData] = useState<RoadmapData | null>(null);
 
+  // 1. Handle Hydration (Prevents hydration mismatch errors)
   useEffect(() => {
     setIsHydrated(true);
+  }, []);
 
-    // 1. Try to get the "Fresh" AI response first
-    const aiDataRaw = localStorage.getItem('generatedRoadmapData');
-    const userInputRaw = localStorage.getItem('roadmapFormData');
-    const savedProgress = localStorage.getItem('roadmapProgress');
+  // 2. Load Data & Save to Supabase
+  useEffect(() => {
+    const saveToDb = async (data: RoadmapData) => {
+      // Check if user is logged in
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        console.log("Saving to Supabase...");
+        // Insert into 'roadmaps' table
+        const { error } = await supabase
+          .from('roadmaps')
+          .insert({
+            user_id: user.id,
+            title: data.goalTitle,
+            content: data, // Save the whole JSON object
+            created_at: new Date().toISOString()
+          });
 
-    if (savedProgress) {
-      // If we have saved progress/clicks, load that (priority)
-      setRoadmapData(JSON.parse(savedProgress));
-    } else if (aiDataRaw && userInputRaw) {
-      try {
-        const aiData = JSON.parse(aiDataRaw);
-        const userInput = JSON.parse(userInputRaw);
-        
-        const transformedData: RoadmapData = {
-          goalTitle: aiData.roadmapTitle || userInput.goal,
-          skillLevel: userInput.level,
-          timeCommitment: `${userInput.hoursPerDay} hours/day`,
-          preferredStack: userInput.languages?.join(', ') || 'General',
-          generatedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          phases: aiData.phases.map((phase: any, index: number) => ({
-            id: `phase-${index + 1}`,
-            title: phase.phaseTitle,
-            description: phase.duration || "Key learning phase",
-            duration: phase.duration,
-            prerequisites: [],
-            weeks: [
-              {
-                weekNumber: 1,
-                steps: phase.topics.map((t: any, i: number) => {
-                  // Get the topic name correctly
-                  const topicName = t.topicName || t.topic || t;
-                  const query = t.search_query || topicName;
-
-                  return {
-                    id: `step-${index}-${i}`,
-                    topic: topicName,
-                    importance: "Core concept",
-                    estimatedHours: 2,
-                    completed: false,
-                    resources: [
-                      { 
-                        type: 'article', 
-                        title: '📄 Documentation (GFG/W3)', 
-                        // DIRECT LINK to GeeksforGeeks/W3Schools search
-                        url: `https://www.google.com/search?q=site:geeksforgeeks.org+OR+site:w3schools.com+${encodeURIComponent(query)}` 
-                      },
-                      { 
-                        type: 'video', 
-                        title: '▶️ Watch Tutorial', 
-                        // DIRECT LINK to YouTube Results
-                        url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query + " tutorial")}`
-                      }
-                    ]
-                  };
-                })
-              }
-            ]
-          }))
-        };
-        
-        setRoadmapData(transformedData);
-        localStorage.setItem('roadmapProgress', JSON.stringify(transformedData));
-
-      } catch (e) {
-        console.error("Error parsing AI data", e);
+        if (error) {
+          console.error("❌ Error saving to DB:", error);
+        } else {
+          console.log("✅ Roadmap saved to Cloud!");
+        }
+      } else {
+        console.log("User not logged in. Roadmap saved to LocalStorage only.");
       }
-    } else {
-      // 3. Fallback: If nothing exists, redirect to generator
-      router.push('/roadmap-generator');
-    }
-  }, [router]);
+    };
 
-  // Save progress whenever it changes
+    if (typeof window !== 'undefined') {
+      // Check if we already have progress saved (e.g. on refresh)
+      const savedProgress = localStorage.getItem('roadmapProgress');
+      
+      if (savedProgress) {
+        setRoadmapData(JSON.parse(savedProgress));
+      } else {
+        // If no progress, look for fresh generation data
+        const aiDataRaw = localStorage.getItem('generatedRoadmapData');
+        const userInputRaw = localStorage.getItem('roadmapUserInput');
+
+        if (aiDataRaw && userInputRaw && !roadmapData) {
+          try {
+            const aiData = JSON.parse(aiDataRaw);
+            const userInput = JSON.parse(userInputRaw);
+            
+            // --- DATA TRANSFORMATION LOGIC ---
+            const transformedData: RoadmapData = {
+               goalTitle: aiData.roadmapTitle || userInput.goal,
+               skillLevel: userInput.level,
+               timeCommitment: `${userInput.hoursPerDay} hours/day`,
+               preferredStack: userInput.languages?.join(', ') || 'General',
+               generatedDate: new Date().toLocaleDateString(),
+               phases: aiData.phases.map((phase: any, index: number) => ({
+                  id: `phase-${index + 1}`,
+                  title: phase.phaseTitle,
+                  duration: phase.duration,
+                  description: phase.summary || "Key Phase",
+                  weeks: [{
+                      weekNumber: 1,
+                      steps: phase.topics.map((t: any, i: number) => {
+                           const topicName = t.topicName || t.topic || t;
+                           const query = t.search_query || topicName;
+                           return {
+                               id: `step-${index}-${i}`,
+                               topic: topicName,
+                               importance: "Core concept", 
+                               estimatedHours: 2,
+                               completed: false,
+                               resources: [
+                                  { 
+                                    type: 'article', 
+                                    title: '📄 Documentation (GFG/W3)', 
+                                    url: `https://www.google.com/search?q=site:geeksforgeeks.org+OR+site:w3schools.com+${encodeURIComponent(query)}` 
+                                  },
+                                  { 
+                                    type: 'video', 
+                                    title: '▶️ Watch Tutorial', 
+                                    url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query + " tutorial")}`
+                                  }
+                               ]
+                           };
+                      })
+                  }]
+               }))
+            };
+            // --- END TRANSFORMATION ---
+
+            setRoadmapData(transformedData);
+            
+            // Trigger the Cloud Save
+            saveToDb(transformedData);
+
+          } catch (e) {
+            console.error("Error parsing data", e);
+          }
+        }
+      }
+    }
+  }, []); // Run once on mount
+
+  // 3. Save progress to LocalStorage whenever it changes
   useEffect(() => {
     if (isHydrated && roadmapData) {
       localStorage.setItem('roadmapProgress', JSON.stringify(roadmapData));
     }
   }, [roadmapData, isHydrated]);
 
+  // --- Handlers ---
   const handleStepToggle = (phaseId: string, stepId: string) => {
     if (!roadmapData) return;
     setRoadmapData((prev) => {
