@@ -1,7 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 
-const apiKey = (process.env.GEMINI_API_KEY || "").trim();
+// 1. Initialize API (Works with both old and new variable names)
+const apiKey = (process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "").trim();
 const genAI = new GoogleGenerativeAI(apiKey);
 
 export async function POST(req: Request) {
@@ -9,11 +10,11 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { goal, level, hoursPerDay, languages, focusAreas } = body;
 
-    if (!goal || !level) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
-    }
+    // 2. The Model Name (The Critical Fix)
+    // Your logs proved you have access to 'gemini-flash-latest'.
+    // We use this exact name to match yesterday's setup but with the valid model.
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-    // UPDATED PROMPT: Forces AI/ML focus even if C++ is selected
     const prompt = `
       Act as a Senior Tech Mentor. Create a detailed learning roadmap.
       
@@ -26,15 +27,12 @@ export async function POST(req: Request) {
 
       **CRITICAL INSTRUCTIONS:**
       1. PRIORITIZE the 'Focus Area' (${focusAreas.join(", ")}) over the 'Language'. 
-         - If the user wants "AI/ML" but selected "C++", teach AI concepts using C++ libraries (like TensorFlow C++ or PyTorch C++) OR explicitly suggest Python for the AI parts.
-         - Do NOT just generate a generic language guide.
-      
       2. Return ONLY valid JSON.
-      3. For 'search_query', provide the specific search term a user should type into Google/YouTube to find the best resource (e.g., "GeeksforGeeks C++ Vectors" or "Andrew Ng Machine Learning").
+      3. For 'search_query', provide specific search terms.
 
       JSON Structure:
       {
-        "roadmapTitle": "String (e.g., 'AI/ML Mastery with C++')",
+        "roadmapTitle": "String",
         "summary": "String",
         "phases": [
           {
@@ -51,32 +49,19 @@ export async function POST(req: Request) {
       }
     `;
 
-    // Smart Fallback 
-    const modelsToTry = ["gemini-1.5-pro", "gemini-pro", "gemini-flash-latest"];
-    let jsonResponse = null;
-    let lastError = null;
-
-    for (const modelName of modelsToTry) {
-      try {
-        const model = genAI.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
-        const cleanedText = text.replace(/```json/g, "").replace(/```/g, "").trim();
-        jsonResponse = JSON.parse(cleanedText);
-        break; 
-      } catch (e: any) {
-        console.warn(`Failed with ${modelName}`, e.message);
-        lastError = e;
-      }
-    }
-
-    if (!jsonResponse) throw lastError || new Error("All models failed.");
+    // 3. Generate (Simple & Clean like yesterday)
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    // 4. Parse
+    const cleanedText = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    const jsonResponse = JSON.parse(cleanedText);
 
     return NextResponse.json(jsonResponse);
 
   } catch (error: any) {
-    console.error("AI Fatal Error:", error);
-    return NextResponse.json({ error: "Generation failed" }, { status: 500 });
+    console.error("AI Generation Error:", error);
+    return NextResponse.json({ error: "Failed to generate roadmap" }, { status: 500 });
   }
 }

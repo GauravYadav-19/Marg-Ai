@@ -53,118 +53,126 @@ const GeneratedRoadmapInteractive = () => {
   const [isHydrated, setIsHydrated] = useState(false);
   const [roadmapData, setRoadmapData] = useState<RoadmapData | null>(null);
 
-  // 1. Handle Hydration (Prevents hydration mismatch errors)
   useEffect(() => {
     setIsHydrated(true);
   }, []);
 
-  // 2. Load Data & Save to Supabase
+  // UPDATED: Load Data & Force Sync to Cloud
   useEffect(() => {
-    const saveToDb = async (data: RoadmapData) => {
-      // Check if user is logged in
+    const syncToDb = async (data: RoadmapData) => {
+      // 1. Check User
       const { data: { user } } = await supabase.auth.getUser();
       
-      if (user) {
-        console.log("Saving to Supabase...");
-        // Insert into 'roadmaps' table
-        const { error } = await supabase
-          .from('roadmaps')
-          .insert({
-            user_id: user.id,
-            title: data.goalTitle,
-            content: data, // Save the whole JSON object
-            created_at: new Date().toISOString()
-          });
+      if (!user) {
+        console.log("📴 User not logged in. skipping Cloud Save.");
+        return;
+      }
 
-        if (error) {
-          console.error("❌ Error saving to DB:", error);
-        } else {
-          console.log("✅ Roadmap saved to Cloud!");
-        }
+      console.log("☁️ Attempting to save to Supabase...");
+
+      // 2. Insert (or Update in future)
+      const { error } = await supabase
+        .from('roadmaps')
+        .insert({
+          user_id: user.id,
+          title: data.goalTitle,
+          content: data,
+          created_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error("❌ DB Error:", error.message);
       } else {
-        console.log("User not logged in. Roadmap saved to LocalStorage only.");
+        console.log("✅ SUCCESS! Roadmap saved to Cloud!");
       }
     };
 
     if (typeof window !== 'undefined') {
-      // Check if we already have progress saved (e.g. on refresh)
       const savedProgress = localStorage.getItem('roadmapProgress');
-      
+      const aiDataRaw = localStorage.getItem('generatedRoadmapData');
+      const userInputRaw = localStorage.getItem('roadmapUserInput');
+
+      let finalData: RoadmapData | null = null;
+
+      // Scenario A: Load from ongoing progress (Cache)
       if (savedProgress) {
-        setRoadmapData(JSON.parse(savedProgress));
-      } else {
-        // If no progress, look for fresh generation data
-        const aiDataRaw = localStorage.getItem('generatedRoadmapData');
-        const userInputRaw = localStorage.getItem('roadmapUserInput');
-
-        if (aiDataRaw && userInputRaw && !roadmapData) {
-          try {
-            const aiData = JSON.parse(aiDataRaw);
-            const userInput = JSON.parse(userInputRaw);
-            
-            // --- DATA TRANSFORMATION LOGIC ---
-            const transformedData: RoadmapData = {
-               goalTitle: aiData.roadmapTitle || userInput.goal,
-               skillLevel: userInput.level,
-               timeCommitment: `${userInput.hoursPerDay} hours/day`,
-               preferredStack: userInput.languages?.join(', ') || 'General',
-               generatedDate: new Date().toLocaleDateString(),
-               phases: aiData.phases.map((phase: any, index: number) => ({
-                  id: `phase-${index + 1}`,
-                  title: phase.phaseTitle,
-                  duration: phase.duration,
-                  description: phase.summary || "Key Phase",
-                  weeks: [{
-                      weekNumber: 1,
-                      steps: phase.topics.map((t: any, i: number) => {
-                           const topicName = t.topicName || t.topic || t;
-                           const query = t.search_query || topicName;
-                           return {
-                               id: `step-${index}-${i}`,
-                               topic: topicName,
-                               importance: "Core concept", 
-                               estimatedHours: 2,
-                               completed: false,
-                               resources: [
-                                  { 
-                                    type: 'article', 
-                                    title: '📄 Documentation (GFG/W3)', 
-                                    url: `https://www.google.com/search?q=site:geeksforgeeks.org+OR+site:w3schools.com+${encodeURIComponent(query)}` 
-                                  },
-                                  { 
-                                    type: 'video', 
-                                    title: '▶️ Watch Tutorial', 
-                                    url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query + " tutorial")}`
-                                  }
-                               ]
-                           };
-                      })
-                  }]
-               }))
-            };
-            // --- END TRANSFORMATION ---
-
-            setRoadmapData(transformedData);
-            
-            // Trigger the Cloud Save
-            saveToDb(transformedData);
-
-          } catch (e) {
-            console.error("Error parsing data", e);
-          }
+        try {
+          console.log("📂 Loading from Cache...");
+          finalData = JSON.parse(savedProgress);
+        } catch(e) {
+          console.error("Corrupt cache", e);
+          localStorage.removeItem('roadmapProgress');
         }
+      } 
+      
+      // Scenario B: Load from fresh generation (if no valid cache)
+      if (!finalData && aiDataRaw && userInputRaw) {
+        try {
+          console.log("✨ Loading from Fresh Generation...");
+          const aiData = JSON.parse(aiDataRaw);
+          const userInput = JSON.parse(userInputRaw);
+          
+          finalData = {
+             goalTitle: aiData.roadmapTitle || userInput.goal,
+             skillLevel: userInput.level,
+             timeCommitment: `${userInput.hoursPerDay} hours/day`,
+             preferredStack: userInput.languages?.join(', ') || 'General',
+             generatedDate: new Date().toLocaleDateString(),
+             phases: aiData.phases.map((phase: any, index: number) => ({
+                id: `phase-${index + 1}`,
+                title: phase.phaseTitle,
+                duration: phase.duration,
+                description: phase.summary || "Key Phase",
+                prerequisites: phase.prerequisites || [],
+                weeks: [{
+                    weekNumber: 1,
+                    steps: phase.topics.map((t: any, i: number) => {
+                         const topicName = t.topicName || t.topic || t;
+                         const query = t.search_query || topicName;
+                         return {
+                             id: `step-${index}-${i}`,
+                             topic: topicName,
+                             importance: "Core concept", 
+                             estimatedHours: 2,
+                             completed: false,
+                             resources: [
+                                { 
+                                  type: 'article', 
+                                  title: '📄 Documentation (GFG/W3)', 
+                                  url: `https://www.google.com/search?q=site:geeksforgeeks.org+OR+site:w3schools.com+${encodeURIComponent(query)}` 
+                                },
+                                { 
+                                  type: 'video', 
+                                  title: '▶️ Watch Tutorial', 
+                                  url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query + " tutorial")}`
+                                }
+                             ]
+                         };
+                    })
+                }]
+             }))
+          };
+        } catch (e) {
+          console.error("Error parsing generation data", e);
+        }
+      }
+
+      // Final Step: Set State & Sync
+      if (finalData && !roadmapData) {
+        setRoadmapData(finalData);
+        // FORCE SYNC NOW (Even if loaded from cache!)
+        syncToDb(finalData);
       }
     }
   }, []); // Run once on mount
 
-  // 3. Save progress to LocalStorage whenever it changes
+  // Save progress
   useEffect(() => {
     if (isHydrated && roadmapData) {
       localStorage.setItem('roadmapProgress', JSON.stringify(roadmapData));
     }
   }, [roadmapData, isHydrated]);
 
-  // --- Handlers ---
   const handleStepToggle = (phaseId: string, stepId: string) => {
     if (!roadmapData) return;
     setRoadmapData((prev) => {
@@ -183,11 +191,7 @@ const GeneratedRoadmapInteractive = () => {
                           ...step,
                           completed: !step.completed,
                           completedAt: !step.completed
-                            ? new Date().toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                              })
+                            ? new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                             : undefined,
                         }
                       : step
@@ -237,7 +241,7 @@ const GeneratedRoadmapInteractive = () => {
     );
   }
 
-  // --- Calculations ---
+  // Calculations
   const calculateOverallProgress = () => {
     let total = 0;
     let completed = 0;

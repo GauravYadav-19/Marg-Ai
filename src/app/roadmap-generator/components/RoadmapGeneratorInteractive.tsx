@@ -110,7 +110,7 @@ const RoadmapGeneratorInteractive = () => {
     setIsGenerating(true);
     
     try {
-      // 1. Send the user's choices to your new API
+      // 1. Send the user's choices to your API
       const response = await fetch('/api/generate-roadmap', {
         method: 'POST',
         headers: {
@@ -127,10 +127,12 @@ const RoadmapGeneratorInteractive = () => {
 
       // 2. Save the REAL AI response to local storage
       if (isHydrated) {
-        // We save the 'data' (the AI response), not just 'formData' (the user input)
+        // Save the AI Response
         localStorage.setItem('generatedRoadmapData', JSON.stringify(data));
-        // We can also keep the user input if you want
-        localStorage.setItem('roadmapFormData', JSON.stringify(formData));
+        
+        // FIX: CHANGED 'roadmapFormData' TO 'roadmapUserInput'
+        // This matches what GeneratedRoadmapInteractive.tsx is looking for!
+        localStorage.setItem('roadmapUserInput', JSON.stringify(formData));
       }
 
       // 3. Navigate to the results page
