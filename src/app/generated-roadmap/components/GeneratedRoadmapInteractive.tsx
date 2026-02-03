@@ -57,7 +57,7 @@ const GeneratedRoadmapInteractive = () => {
     setIsHydrated(true);
   }, []);
 
-  // UPDATED: Load Data & Force Sync to Cloud
+  // UPDATED: Load Data & Initial Save
   useEffect(() => {
     const syncToDb = async (data: RoadmapData) => {
       // 1. Check User
@@ -70,20 +70,25 @@ const GeneratedRoadmapInteractive = () => {
 
       console.log("☁️ Attempting to save to Supabase...");
 
-      // 2. Insert (or Update in future)
-      const { error } = await supabase
+      // 2. Insert & Capture ID
+      const { data: insertedData, error } = await supabase
         .from('roadmaps')
         .insert({
           user_id: user.id,
           title: data.goalTitle,
           content: data,
           created_at: new Date().toISOString()
-        });
+        })
+        .select() // <--- CRITICAL: Get the new row back
+        .single();
 
       if (error) {
         console.error("❌ DB Error:", error.message);
-      } else {
+      } else if (insertedData) {
         console.log("✅ SUCCESS! Roadmap saved to Cloud!");
+        // SAVE ID IMMEDIATELY so progress sync works
+        localStorage.setItem('currentRoadmapId', insertedData.id);
+        localStorage.setItem('roadmapAlreadySaved', 'true');
       }
     };
 
@@ -160,17 +165,47 @@ const GeneratedRoadmapInteractive = () => {
       // Final Step: Set State & Sync
       if (finalData && !roadmapData) {
         setRoadmapData(finalData);
-        // FORCE SYNC NOW (Even if loaded from cache!)
-        syncToDb(finalData);
+
+        // CHECK THE FLAG BEFORE SAVING
+        const isAlreadySaved = localStorage.getItem('roadmapAlreadySaved');
+        
+        if (!isAlreadySaved) {
+            // Only save if it's NOT marked as saved
+            syncToDb(finalData);
+        } else {
+            console.log("ℹ️ Roadmap already saved to cloud. Skipping initial insert.");
+        }
       }
     }
   }, []); // Run once on mount
 
-  // Save progress
+  // --- NEW: CLOUD SYNC LOGIC (Updates Progress) ---
   useEffect(() => {
-    if (isHydrated && roadmapData) {
+    const syncProgressToCloud = async () => {
+      if (!isHydrated || !roadmapData) return;
+
+      // 1. Save to Local Storage (Instant backup)
       localStorage.setItem('roadmapProgress', JSON.stringify(roadmapData));
-    }
+
+      // 2. Save to Supabase (Cloud Sync)
+      const currentId = localStorage.getItem('currentRoadmapId');
+      
+      if (currentId) {
+        // We debounce this slightly so we don't hammer the DB on every click
+        const { error } = await supabase
+          .from('roadmaps')
+          .update({ content: roadmapData }) // Update the JSON blob
+          .eq('id', currentId);
+
+        if (error) console.error("❌ Cloud Sync Failed:", error.message);
+        else console.log("☁️ Progress Synced to Cloud");
+      }
+    };
+
+    // Trigger sync whenever roadmapData changes (e.g., checking a box)
+    const timeoutId = setTimeout(syncProgressToCloud, 500); // 500ms delay (debounce)
+    return () => clearTimeout(timeoutId);
+
   }, [roadmapData, isHydrated]);
 
   const handleStepToggle = (phaseId: string, stepId: string) => {
@@ -215,6 +250,8 @@ const GeneratedRoadmapInteractive = () => {
     if (confirm('Regenerate roadmap? Current progress will be lost.')) {
       localStorage.removeItem('generatedRoadmapData');
       localStorage.removeItem('roadmapProgress');
+      localStorage.removeItem('currentRoadmapId');
+      localStorage.removeItem('roadmapAlreadySaved');
       router.push('/roadmap-generator');
     }
   };

@@ -133,6 +133,9 @@ const RoadmapGeneratorInteractive = () => {
         // FIX: CHANGED 'roadmapFormData' TO 'roadmapUserInput'
         // This matches what GeneratedRoadmapInteractive.tsx is looking for!
         localStorage.setItem('roadmapUserInput', JSON.stringify(formData));
+
+        // 🆕 ADD THIS LINE: Reset the saved flag for new generations
+        localStorage.removeItem('roadmapAlreadySaved');
       }
 
       // 3. Navigate to the results page

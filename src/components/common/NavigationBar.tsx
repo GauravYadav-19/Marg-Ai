@@ -26,23 +26,22 @@ const NavigationBar = ({ onNavigate }: NavigationBarProps) => {
   // 1. DYNAMIC NAVIGATION: Only show Roadmap/Progress if logged in
  // 1. STRATEGIC NAVIGATION PLAN
   const navigationItems: NavigationItem[] = [
-    // --- Public Links (Visible to Everyone) ---
+    // --- Public Links ---
     { label: 'Home', path: '/landing-page', icon: 'HomeIcon' },
-    { label: 'Explore', path: '/explore', icon: 'GlobeAltIcon' }, // NEW: Social Proof
+    { label: 'Explore', path: '/explore', icon: 'GlobeAltIcon' },
     
     // --- Feature Links ---
     { label: 'Generate', path: '/roadmap-generator', icon: 'SparklesIcon' },
 
-    // --- Private Links (Only for Logged In Users) ---
-    // We hide "Pricing" for logged-in users because they already "bought" in.
+    // --- Private Links ---
     ...(!user ? [
-       { label: 'Pricing', path: '/pricing', icon: 'CurrencyDollarIcon' }, // NEW: Trust
+       { label: 'Pricing', path: '/pricing', icon: 'CurrencyDollarIcon' },
     ] : []),
 
     ...(user ? [
-      { label: 'Dashboard', path: '/dashboard', icon: 'Squares2X2Icon' }, // NEW: Central Hub
-      { label: 'My Roadmap', path: '/generated-roadmap', icon: 'MapIcon' },
-      { label: 'Settings', path: '/settings', icon: 'Cog6ToothIcon' }, // NEW: User Control
+      // CHANGE: Renamed "Dashboard" to "My Roadmaps" and removed the old single link
+      { label: 'My Roadmaps', path: '/dashboard', icon: 'Squares2X2Icon' }, 
+      { label: 'Settings', path: '/settings', icon: 'Cog6ToothIcon' },
     ] : [])
   ];
 
