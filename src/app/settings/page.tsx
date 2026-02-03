@@ -1,51 +1,129 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
+import Icon from '@/components/ui/AppIcon';
 import NavigationBar from '@/components/common/NavigationBar';
 
 export default function SettingsPage() {
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) router.push('/login');
+      setUser(user);
+    };
+    getUser();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/');
+  };
+
+  const handleDeleteHistory = async () => {
+    if (!confirm("Are you sure? This will delete ALL your saved roadmaps permanently.")) return;
+    
+    setLoading(true);
+    const { error } = await supabase
+      .from('roadmaps')
+      .delete()
+      .eq('user_id', user.id);
+
+    setLoading(false);
+    
+    if (error) alert("Error deleting data.");
+    else alert("History cleared!");
+  };
+
   return (
-    <div className="min-h-screen bg-[#0B1120] text-white">
+    <div className="min-h-screen bg-background">
       <NavigationBar />
       
-      <main className="max-w-3xl mx-auto px-6 pt-32 pb-20">
-        <h1 className="text-3xl font-bold mb-8">Account Settings</h1>
+      <main className="pt-24 px-6 pb-16">
+        <div className="max-w-2xl mx-auto">
+          <h1 className="text-3xl font-bold text-foreground mb-8">Account Settings</h1>
 
-        <div className="space-y-6">
-          {/* Profile Section */}
-          <section className="bg-gray-800/50 p-6 rounded-2xl border border-gray-700">
-            <h2 className="text-xl font-bold mb-4">Profile Information</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Display Name</label>
-                <input type="text" placeholder="Gaurav Yadav" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:border-emerald-500 outline-none" />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Email Address</label>
-                <input type="email" value="user@example.com" disabled className="w-full bg-gray-900/50 border border-gray-800 rounded-lg px-4 py-2 text-gray-500 cursor-not-allowed" />
-              </div>
+          {/* Profile Card */}
+          <div className="bg-card border border-border rounded-xl p-6 mb-8 flex items-center gap-4">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+              <Icon name="UserIcon" size={32} />
             </div>
-          </section>
+            <div>
+              <h2 className="text-xl font-semibold text-foreground">
+                {user?.email?.split('@')[0] || 'User'}
+              </h2>
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
+            </div>
+          </div>
 
-          {/* Preferences Section */}
-          <section className="bg-gray-800/50 p-6 rounded-2xl border border-gray-700">
-            <h2 className="text-xl font-bold mb-4">Preferences</h2>
-            <div className="flex items-center justify-between py-2">
-              <span className="text-gray-300">Email Notifications</span>
-              <button className="w-12 h-6 bg-emerald-500 rounded-full relative">
-                <div className="w-4 h-4 bg-white rounded-full absolute right-1 top-1"></div>
-              </button>
+          {/* Actions Grid */}
+          <div className="space-y-6">
+            
+            {/* Preferences Section */}
+            <div>
+              <h3 className="text-lg font-medium text-foreground mb-4">Preferences</h3>
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                <div className="p-4 flex items-center justify-between border-b border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg">
+                      <Icon name="SparklesIcon" size={20} />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">AI Model</p>
+                      <p className="text-xs text-muted-foreground">Gemini 1.5 Flash (Standard)</p>
+                    </div>
+                  </div>
+                  <span className="text-xs bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-full font-medium">Active</span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center justify-between py-2">
-              <span className="text-gray-300">Public Profile</span>
-              <button className="w-12 h-6 bg-gray-700 rounded-full relative">
-                <div className="w-4 h-4 bg-white rounded-full absolute left-1 top-1"></div>
-              </button>
+
+            {/* Danger Zone */}
+            <div>
+              <h3 className="text-lg font-medium text-red-500 mb-4">Danger Zone</h3>
+              <div className="bg-card border border-red-900/20 rounded-xl overflow-hidden">
+                <button 
+                  onClick={handleDeleteHistory}
+                  disabled={loading}
+                  className="w-full p-4 flex items-center justify-between hover:bg-red-500/5 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-red-500/10 text-red-500 rounded-lg">
+                      <Icon name="TrashIcon" size={20} />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">Clear Roadmap History</p>
+                      <p className="text-xs text-muted-foreground">Delete all your generated roadmaps</p>
+                    </div>
+                  </div>
+                  <Icon name="ChevronRightIcon" size={16} className="text-muted-foreground" />
+                </button>
+                
+                <div className="h-px bg-border/50" />
+                
+                <button 
+                  onClick={handleSignOut}
+                  className="w-full p-4 flex items-center justify-between hover:bg-muted transition-colors text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-muted text-foreground rounded-lg">
+                      <Icon name="ArrowRightIcon" size={20} />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">Sign Out</p>
+                      <p className="text-xs text-muted-foreground">Log out of your account</p>
+                    </div>
+                  </div>
+                  <Icon name="ChevronRightIcon" size={16} className="text-muted-foreground" />
+                </button>
+              </div>
             </div>
-          </section>
-          
-          <div className="flex justify-end gap-4 pt-4">
-            <button className="text-gray-400 hover:text-white">Cancel</button>
-            <button className="bg-emerald-500 text-white px-6 py-2 rounded-lg font-bold hover:bg-emerald-600 transition-colors">
-              Save Changes
-            </button>
+
           </div>
         </div>
       </main>

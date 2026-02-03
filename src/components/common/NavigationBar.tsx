@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Icon from '@/components/ui/AppIcon';
 import { supabase } from '@/lib/supabaseClient';
+import Logo from '@/components/ui/logo';
 
 interface NavigationItem {
   label: string;
@@ -102,21 +103,12 @@ const NavigationBar = ({ onNavigate }: NavigationBarProps) => {
           <div className="flex items-center justify-between">
             
             {/* LOGO SECTION */}
+            {/* LOGO SECTION */}
             <Link
               href="/landing-page"
-              className="flex items-center gap-3 transition-opacity hover:opacity-80"
-              onClick={() => handleNavClick('/landing-page')}
+              className="group transition-opacity hover:opacity-90"
             >
-              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-500 text-white shadow-lg">
-                <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2L2 7L12 12L22 7L12 2Z" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M2 17L12 22L22 17" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M2 12L12 17L22 12" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-              <span className="text-2xl font-bold tracking-tight text-white">
-                MargAI
-              </span>
+              <Logo size={36} />
             </Link>
 
             {/* NAVIGATION CAPSULE (Now Dynamic) */}

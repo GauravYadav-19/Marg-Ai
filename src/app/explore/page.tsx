@@ -1,42 +1,85 @@
+'use client';
 import NavigationBar from '@/components/common/NavigationBar';
+import Icon from '@/components/ui/AppIcon';
+import { useRouter } from 'next/navigation';
 
 export default function ExplorePage() {
-  const featuredRoadmaps = [
-    { title: 'Full Stack React', role: 'Frontend', level: 'Intermediate', users: '2.4k' },
-    { title: 'AI/ML Engineering', role: 'Data Science', level: 'Beginner', users: '1.8k' },
-    { title: 'DevOps & Cloud', role: 'Operations', level: 'Advanced', users: '900+' },
+  const router = useRouter();
+
+  // HARDCODED "Gold Standard" Examples (Honest Marketing)
+  const examples = [
+    {
+      title: "Full Stack Developer 2026",
+      level: "Beginner",
+      duration: "6 Months",
+      tags: ["React", "Node.js", "PostgreSQL"],
+      color: "bg-blue-500/10 text-blue-500"
+    },
+    {
+      title: "AI Engineer Path",
+      level: "Intermediate",
+      duration: "4 Months",
+      tags: ["Python", "TensorFlow", "RAG"],
+      color: "bg-purple-500/10 text-purple-500"
+    },
+    {
+      title: "DevOps & Cloud Architect",
+      level: "Advanced",
+      duration: "3 Months",
+      tags: ["AWS", "Docker", "Kubernetes"],
+      color: "bg-orange-500/10 text-orange-500"
+    }
   ];
 
   return (
-    <div className="min-h-screen bg-[#0B1120] text-white">
+    <div className="min-h-screen bg-background">
       <NavigationBar />
       
-      <main className="max-w-7xl mx-auto px-6 pt-32 pb-20">
+      <main className="pt-32 px-6 pb-16 max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-            Explore Community Roadmaps
+          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
+            Explore <span className="text-primary">Paths</span>
           </h1>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            See what others are learning. Discover top-rated paths curated by the community and industry experts.
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            See examples of what MargAI can generate. These are structure-optimized learning paths.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
-          {featuredRoadmaps.map((map, i) => (
-            <div key={i} className="bg-gray-800/50 border border-gray-700 rounded-2xl p-6 hover:border-emerald-500/50 transition-all cursor-pointer group">
-              <div className="flex justify-between items-start mb-4">
-                <span className="bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full text-xs font-medium">
-                  {map.role}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {examples.map((ex, i) => (
+            <div key={i} className="group relative bg-card border border-border rounded-2xl p-8 hover:border-primary/50 transition-all hover:shadow-2xl hover:shadow-primary/10">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 ${ex.color}`}>
+                <Icon name="MapIcon" size={24} />
+              </div>
+              
+              <h3 className="text-2xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors">
+                {ex.title}
+              </h3>
+              
+              <div className="flex gap-4 text-sm text-muted-foreground mb-6">
+                <span className="flex items-center gap-1">
+                  <Icon name="ChartBarIcon" size={14} /> {ex.level}
                 </span>
-                <span className="text-gray-500 text-xs flex items-center gap-1">
-                  👥 {map.users}
+                <span className="flex items-center gap-1">
+                  <Icon name="ClockIcon" size={14} /> {ex.duration}
                 </span>
               </div>
-              <h3 className="text-xl font-bold mb-2 group-hover:text-emerald-400 transition-colors">{map.title}</h3>
-              <p className="text-gray-400 text-sm mb-4">A complete step-by-step guide for {map.level} level developers.</p>
-              <div className="h-2 w-full bg-gray-700 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500 w-3/4 opacity-50"></div>
+
+              <div className="flex flex-wrap gap-2 mb-8">
+                {ex.tags.map(tag => (
+                  <span key={tag} className="px-3 py-1 rounded-full bg-muted text-xs font-medium text-foreground">
+                    {tag}
+                  </span>
+                ))}
               </div>
+
+              <button 
+                onClick={() => router.push('/roadmap-generator')}
+                className="w-full py-3 rounded-xl bg-primary/10 text-primary font-bold hover:bg-primary hover:text-primary-foreground transition-all flex items-center justify-center gap-2"
+              >
+                Generate This
+                <Icon name="ArrowRightIcon" size={16} />
+              </button>
             </div>
           ))}
         </div>

@@ -3,94 +3,43 @@
 import { useState, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
 
-interface Stat {
-  id: string;
-  value: string;
-  label: string;
-  icon: string;
-}
-
 const StatsSection = () => {
   const [isHydrated, setIsHydrated] = useState(false);
 
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
+  useEffect(() => { setIsHydrated(true); }, []);
 
-  const stats: Stat[] = [
-    {
-      id: '1',
-      value: '10,000+',
-      label: 'Roadmaps Generated',
-      icon: 'MapIcon'
-    },
-    {
-      id: '2',
-      value: '95%',
-      label: 'Success Rate',
-      icon: 'CheckBadgeIcon'
-    },
-    {
-      id: '3',
-      value: '40%',
-      label: 'Time Saved',
-      icon: 'ClockIcon'
-    },
-    {
-      id: '4',
-      value: '4.9/5',
-      label: 'User Rating',
-      icon: 'StarIcon'
-    }
+  // REAL FEATURES (Honest Marketing)
+  const features = [
+    { id: '1', label: 'Powered By', value: 'Gemini 1.5', icon: 'SparklesIcon', desc: 'Latest AI Model' },
+    { id: '2', label: 'Generation Time', value: 'Instant', icon: 'BoltIcon', desc: 'Under 10 Seconds' },
+    { id: '3', label: 'Cost', value: 'Free', icon: 'CurrencyDollarIcon', desc: 'No Credit Card' },
+    { id: '4', label: 'Availability', value: '24/7', icon: 'GlobeAltIcon', desc: 'Always Online' }
   ];
 
-  if (!isHydrated) {
-    return (
-      <section className="py-16 px-6 bg-card">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {stats.map((stat) => (
-              <div key={stat.id} className="text-center">
-                <div className="flex justify-center mb-4">
-                  <div className="w-12 h-12 rounded-md bg-primary flex items-center justify-center">
-                    <Icon name={stat.icon as any} size={24} variant="solid" className="text-primary-foreground" />
-                  </div>
-                </div>
-                <p className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-2">
-                  {stat.value}
-                </p>
-                <p className="text-sm font-caption text-muted-foreground">
-                  {stat.label}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
+  if (!isHydrated) return null;
 
   return (
-    <section className="py-16 px-6 bg-card">
+    <section className="py-20 px-6 bg-background">
       <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-          {stats.map((stat, index) => (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {features.map((feature) => (
             <div 
-              key={stat.id} 
-              className="text-center animate-fade-in"
-              style={{ animationDelay: `${index * 0.1}s` }}
+              key={feature.id} 
+              // ✨ VISUAL FIX: Uses the "Greyish" card style from your screenshot
+              className="flex flex-col items-center text-center p-6 bg-[#1F2937] border border-gray-800 rounded-2xl hover:border-primary/50 transition-all duration-300 group hover:-translate-y-1 hover:shadow-lg"
             >
-              <div className="flex justify-center mb-4">
-                <div className="w-12 h-12 rounded-md bg-primary flex items-center justify-center transition-smooth hover:scale-110 hover:glow-lg">
-                  <Icon name={stat.icon as any} size={24} variant="solid" className="text-primary-foreground" />
-                </div>
+              {/* Green Icon Bubble */}
+              <div className="w-14 h-14 mb-4 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
+                <Icon name={feature.icon as any} size={28} variant="solid" />
               </div>
-              <p className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-2">
-                {stat.value}
-              </p>
-              <p className="text-sm font-caption text-muted-foreground">
-                {stat.label}
-              </p>
+
+              {/* Text Content */}
+              <div className="text-2xl md:text-3xl font-bold text-white mb-1">
+                {feature.value}
+              </div>
+              <div className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                {feature.label}
+              </div>
             </div>
           ))}
         </div>
